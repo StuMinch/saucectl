@@ -89,7 +89,12 @@ once, including retiring test cases whose source spec has been deleted.
 Use 'saucectl author add testsuite <name>' or 'saucectl author add testcase
 <spec.md>' to create a single resource directly (the same lockfile-tracked
 behavior as this command, just addressed by subcommand and noun instead of
---spec).`,
+--spec).
+
+Use 'saucectl author remove testsuite <name>' or 'saucectl author remove
+testcase <spec.md>' to delete a single resource, or 'saucectl author remove
+testcase <spec.md> --test-suite <name>' to unassign a test case from a suite
+without deleting it.`,
 		SilenceUsage:     true,
 		TraverseChildren: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
@@ -141,6 +146,7 @@ behavior as this command, just addressed by subcommand and noun instead of
 	cmd.AddCommand(
 		SyncCommand(),
 		AddCommand(),
+		RemoveCommand(),
 	)
 
 	return cmd

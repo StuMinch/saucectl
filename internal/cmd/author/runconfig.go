@@ -39,7 +39,15 @@ type runConfigSuite struct {
 // different suites over time, rather than only reflecting whichever suite
 // this particular invocation touched.
 func maybeWriteRunConfig(cmd *cobra.Command, flags *sharedFlags, lf authoring.Lockfile) error {
-	if flags.configOut == "" {
+	return writeRunConfigIfSet(cmd, flags.configOut, flags.concurrency, lf)
+}
+
+// writeRunConfigIfSet is the flags-struct-agnostic core of
+// maybeWriteRunConfig, so callers with a leaner flag set (e.g. `author
+// remove`, which has no need for most of sharedFlags) can still keep a
+// --config-out file in sync after they change suite/test case membership.
+func writeRunConfigIfSet(cmd *cobra.Command, configOut string, concurrency int, lf authoring.Lockfile) error {
+	if configOut == "" {
 		return nil
 	}
 
@@ -67,19 +75,19 @@ func maybeWriteRunConfig(cmd *cobra.Command, flags *sharedFlags, lf authoring.Lo
 		Kind:       "authoring",
 		Sauce: runConfigSauce{
 			Region:      region,
-			Concurrency: flags.concurrency,
+			Concurrency: concurrency,
 		},
 		Suites: suites,
 	}
 
-	if dir := filepath.Dir(flags.configOut); dir != "" && dir != "." {
+	if dir := filepath.Dir(configOut); dir != "" && dir != "." {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
-			return fmt.Errorf("failed to create directory for %s: %w", flags.configOut, err)
+			return fmt.Errorf("failed to create directory for %s: %w", configOut, err)
 		}
 	}
 
-	if err := syaml.WriteFile(flags.configOut, cfg, 0o644); err != nil {
-		return fmt.Errorf("failed to write %s: %w", flags.configOut, err)
+	if err := syaml.WriteFile(configOut, cfg, 0o644); err != nil {
+		return fmt.Errorf("failed to write %s: %w", configOut, err)
 	}
 
 	return nil
