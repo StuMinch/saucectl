@@ -292,15 +292,12 @@ func resolveOrCreateSuite(ctx context.Context, name string) (string, error) {
 // Used by `author add testsuite`, which needs to tell the two cases apart to
 // report accurately.
 func resolveOrCreateSuiteVerbose(ctx context.Context, name string, tags []string) (id string, created bool, err error) {
-	suites, err := authoringService.ListTestSuites(ctx, authoring.ListTestSuiteOptions{Search: name})
+	id, err = lookupSuiteByName(ctx, name)
 	if err != nil {
 		return "", false, err
 	}
-
-	for _, s := range suites {
-		if strings.EqualFold(s.Name, name) {
-			return s.ID, false, nil
-		}
+	if id != "" {
+		return id, false, nil
 	}
 
 	suite, err := authoringService.CreateTestSuite(ctx, name, tags)
@@ -308,6 +305,36 @@ func resolveOrCreateSuiteVerbose(ctx context.Context, name string, tags []string
 		return "", false, err
 	}
 	return suite.ID, true, nil
+}
+
+// resolveSuiteIDByName looks up a test suite by exact (case-insensitive)
+// name match, without creating one if no match exists. Used by `author
+// remove`, which must never conjure a suite into existence just because the
+// given name doesn't match anything.
+func resolveSuiteIDByName(ctx context.Context, name string) (string, error) {
+	id, err := lookupSuiteByName(ctx, name)
+	if err != nil {
+		return "", err
+	}
+	if id == "" {
+		return "", fmt.Errorf("no test suite named %q found", name)
+	}
+	return id, nil
+}
+
+// lookupSuiteByName returns the ID of the test suite with an exact
+// (case-insensitive) name match, or "" if none exists.
+func lookupSuiteByName(ctx context.Context, name string) (string, error) {
+	suites, err := authoringService.ListTestSuites(ctx, authoring.ListTestSuiteOptions{Search: name})
+	if err != nil {
+		return "", err
+	}
+	for _, s := range suites {
+		if strings.EqualFold(s.Name, name) {
+			return s.ID, nil
+		}
+	}
+	return "", nil
 }
 
 func loadTargetFile(path string) (map[string]interface{}, error) {
