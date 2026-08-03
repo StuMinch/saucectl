@@ -167,10 +167,13 @@ func (r *Runner) worker(ctx context.Context, units <-chan testCaseUnit, results 
 func (r *Runner) runUnit(ctx context.Context, u testCaseUnit) unitResult {
 	start := time.Now()
 
+	log.Info().Str("suite", u.suiteName).Str("testCase", u.testCase.Name).Msg("Starting test case.")
+
 	run, err := r.Client.RunTestCase(ctx, u.testCase.ID, authoring.RunTestCaseOptions{
 		BuildName: u.buildName,
 	})
 	if err != nil {
+		log.Error().Err(err).Str("suite", u.suiteName).Str("testCase", u.testCase.Name).Msg("Test case failed to start.")
 		return unitResult{
 			suiteName: u.suiteName,
 			testCase:  u.testCase,
@@ -178,6 +181,10 @@ func (r *Runner) runUnit(ctx context.Context, u testCaseUnit) unitResult {
 			startTime: start,
 			endTime:   time.Now(),
 		}
+	}
+
+	for _, j := range run.Jobs {
+		log.Info().Str("suite", u.suiteName).Str("testCase", u.testCase.Name).Str("job", j.ID).Str("url", j.URL).Msg("Test case job started.")
 	}
 
 	if r.Async {
@@ -223,11 +230,28 @@ func (r *Runner) runUnit(ctx context.Context, u testCaseUnit) unitResult {
 // worker pool hasn't started yet to be reported as skipped instead of run.
 func (r *Runner) collectResults(expected int, results <-chan unitResult, cancel context.CancelFunc) bool {
 	passed := true
+	inProgress := expected
+
+	done := make(chan struct{})
+	go func() {
+		t := time.NewTicker(10 * time.Second)
+		defer t.Stop()
+		for {
+			select {
+			case <-done:
+				return
+			case <-t.C:
+				log.Info().Msgf("Test cases in progress: %d", inProgress)
+			}
+		}
+	}()
 
 	for i := 0; i < expected; i++ {
 		res := <-results
+		inProgress--
 
 		if res.skipped {
+			log.Info().Str("testCase", res.testCase.Name).Str("suite", res.suiteName).Msg("Test case skipped.")
 			continue
 		}
 
@@ -235,7 +259,6 @@ func (r *Runner) collectResults(expected int, results <-chan unitResult, cancel 
 
 		if res.err != nil {
 			passed = false
-			log.Error().Err(res.err).Str("testCase", res.testCase.Name).Str("suite", res.suiteName).Msg("Test case run failed.")
 			for _, rep := range r.Reporters {
 				rep.Add(report.TestResult{
 					Name:      displayName,
@@ -253,6 +276,7 @@ func (r *Runner) collectResults(expected int, results <-chan unitResult, cancel 
 
 		if len(res.jobs) == 0 {
 			// Async: nothing to report on yet beyond "it was queued".
+			log.Info().Str("testCase", res.testCase.Name).Str("suite", res.suiteName).Msg("Test case queued.")
 			for _, rep := range r.Reporters {
 				rep.Add(report.TestResult{
 					Name:      displayName,
@@ -312,6 +336,16 @@ func (r *Runner) collectResults(expected int, results <-chan unitResult, cancel 
 				rep.Add(tr)
 			}
 
+			logger := log.With().Str("testCase", name).Str("suite", res.suiteName).Str("url", tr.URL).Logger()
+			switch {
+			case pj.job.TimedOut:
+				logger.Error().Msg("Test case timed out.")
+			case pj.job.IsSuccessful():
+				logger.Info().Msg("Test case passed.")
+			default:
+				logger.Error().Msg("Test case failed.")
+			}
+
 			if pj.job.TimedOut {
 				passed = false
 				if r.FailFast {
@@ -320,6 +354,7 @@ func (r *Runner) collectResults(expected int, results <-chan unitResult, cancel 
 			}
 		}
 	}
+	close(done)
 
 	for _, rep := range r.Reporters {
 		rep.Render()
