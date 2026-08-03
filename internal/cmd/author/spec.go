@@ -198,6 +198,8 @@ func syncSpec(ctx context.Context, lf *authoring.Lockfile, specPath, suiteID str
 		return res, false, fmt.Errorf("failed to submit %s for authoring: %w", specPath, err)
 	}
 
+	log.Info().Str("specPath", specPath).Str("taskId", task.TaskID).Msg("Test case generation submitted.")
+
 	task, err = pollGenerateTask(ctx, task.TaskID, flags.pollEvery, flags.pollFor)
 	if err != nil {
 		res.Action = "failed"
@@ -250,9 +252,12 @@ func syncSpec(ctx context.Context, lf *authoring.Lockfile, specPath, suiteID str
 }
 
 // pollGenerateTask polls GetGenerateTask until it reaches a terminal state
-// or the timeout elapses.
+// or the timeout elapses, logging progress roughly every 10 seconds so a
+// multi-minute generation doesn't look like the CLI has hung.
 func pollGenerateTask(ctx context.Context, taskID string, every, timeout time.Duration) (authoring.GenerateTask, error) {
-	deadline := time.Now().Add(timeout)
+	start := time.Now()
+	deadline := start.Add(timeout)
+	lastLog := start
 
 	for {
 		task, err := authoringService.GetGenerateTask(ctx, taskID)
@@ -262,9 +267,16 @@ func pollGenerateTask(ctx context.Context, taskID string, every, timeout time.Du
 
 		switch task.Status {
 		case authoring.TaskCompleted:
+			log.Info().Str("taskId", taskID).Str("testCaseId", task.TestCaseID).Dur("elapsed", time.Since(start).Round(time.Second)).Msg("Test case generation completed.")
 			return task, nil
 		case authoring.TaskFailed:
+			log.Error().Str("taskId", taskID).Str("code", task.ErrorCode).Str("detail", task.ErrorDetail).Msg("Test case generation failed.")
 			return authoring.GenerateTask{}, fmt.Errorf("generation failed (%s): %s", task.ErrorCode, task.ErrorDetail)
+		}
+
+		if time.Since(lastLog) >= 10*time.Second {
+			log.Info().Str("taskId", taskID).Str("status", string(task.Status)).Dur("elapsed", time.Since(start).Round(time.Second)).Msg("Waiting for test case generation...")
+			lastLog = time.Now()
 		}
 
 		if time.Now().After(deadline) {
