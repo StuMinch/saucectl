@@ -160,12 +160,14 @@ func syncSpec(ctx context.Context, lf *authoring.Lockfile, specPath, suiteID str
 	}
 
 	target := defaultTarget
+	customTarget := false
 	if flags.targetJSON != "" {
 		t, err := loadTargetFile(flags.targetJSON)
 		if err != nil {
 			return res, false, err
 		}
 		target = t
+		customTarget = true
 	}
 
 	name := strings.TrimSuffix(filepath.Base(specPath), filepath.Ext(specPath))
@@ -174,7 +176,13 @@ func syncSpec(ctx context.Context, lf *authoring.Lockfile, specPath, suiteID str
 	if testURL == "" {
 		testURL = extractURL(string(intent))
 	}
-	if testURL == "" {
+	// The built-in default target is a browser, which always needs a URL to
+	// test against, so only hard-require one in that case. A custom
+	// --target-file (e.g. a native mobile app run against an uploaded
+	// binary rather than a website) may not need one at all -- leave that
+	// call to the API's own validation instead of assuming every target is
+	// a website.
+	if testURL == "" && !customTarget {
 		res.Action = "failed"
 		res.Error = "no URL found in spec and --url not set"
 		return res, false, fmt.Errorf("spec %s doesn't mention a URL to test against; pass --url explicitly", specPath)
