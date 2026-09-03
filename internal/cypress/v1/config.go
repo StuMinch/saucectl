@@ -266,6 +266,9 @@ func (p *Project) Validate() error {
 		if p.Sauce.Retries < s.PassThreshold-1 {
 			return fmt.Errorf(msg.InvalidPassThreshold)
 		}
+		if err := config.ValidateSmartRetry(s.SmartRetry); err != nil {
+			return err
+		}
 	}
 	if p.Sauce.Retries < 0 {
 		log.Warn().Int("retries", p.Sauce.Retries).Msg(msg.InvalidReries)

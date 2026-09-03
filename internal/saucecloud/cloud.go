@@ -83,8 +83,9 @@ type result struct {
 	retries   int
 	attempts  []report.Attempt
 
-	details   insights.Details
-	artifacts []report.Artifact
+	details            insights.Details
+	artifacts          []report.Artifact
+	prunePassedRetries bool
 }
 
 // ConsoleLogAsset represents job asset log file name.
@@ -320,13 +321,14 @@ func (r *CloudRunner) runJobs(ctx context.Context, jobOpts chan job.StartOptions
 
 		if ctx.Err() != nil || skipStart {
 			results <- result{
-				name:     opts.DisplayName,
-				browser:  opts.BrowserName,
-				skipped:  true,
-				err:      nil,
-				attempts: opts.PrevAttempts,
-				retries:  opts.Retries,
-				details:  details,
+				name:               opts.DisplayName,
+				browser:            opts.BrowserName,
+				skipped:            true,
+				err:                nil,
+				attempts:           opts.PrevAttempts,
+				retries:            opts.Retries,
+				prunePassedRetries: opts.SmartRetry.PrunePassedRetries,
+				details:            details,
 			}
 			continue
 		}
@@ -411,7 +413,8 @@ func (r *CloudRunner) runJobs(ctx context.Context, jobOpts chan job.StartOptions
 				EndTime:   time.Now(),
 				Status:    jobData.Status,
 			}),
-			artifacts: artifacts,
+			artifacts:          artifacts,
+			prunePassedRetries: opts.SmartRetry.PrunePassedRetries,
 		}
 	}
 }
@@ -694,6 +697,17 @@ func (r *CloudRunner) FetchJUnitReports(ctx context.Context, res *result, artifa
 	}
 	if !allSucceeded {
 		log.Warn().Msg("Some JUnit reports from the run are not available which may affect the level of detail for your configured reporters.")
+		return
+	}
+	if res.prunePassedRetries {
+		reports := make([]junit.TestSuites, 0, len(res.attempts))
+		for _, attempt := range res.attempts {
+			reports = append(reports, attempt.TestSuites)
+		}
+		junit.PrunePassedRetries(reports)
+		for i := range res.attempts {
+			res.attempts[i].TestSuites = reports[i]
+		}
 	}
 }
 

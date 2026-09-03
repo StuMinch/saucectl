@@ -237,7 +237,8 @@ type NetworkConditions struct {
 
 // SmartRetry represents the settings for retry strategy.
 type SmartRetry struct {
-	FailedOnly bool `yaml:"failedOnly" json:"-"`
+	FailedOnly         bool `yaml:"failedOnly" json:"-"`
+	PrunePassedRetries bool `yaml:"prunePassedRetries" json:"-"`
 	// FailedClassesOnly was introduced as the first iteration of smart retry
 	// and was applicable to mobile only.
 	// DEPRECATED. Use FailedOnly instead.
@@ -581,10 +582,14 @@ func toStringKeys(val interface{}) (interface{}, error) {
 	}
 }
 
-func ValidateSmartRetry(smartRetry SmartRetry) {
+func ValidateSmartRetry(smartRetry SmartRetry) error {
 	if smartRetry.FailedClassesOnly {
 		log.Warn().Msg("failedClassesOnly has been deprecated. Use FailedOnly instead.")
 	}
+	if smartRetry.PrunePassedRetries && !smartRetry.FailedOnly {
+		return errors.New("smartRetry.prunePassedRetries requires smartRetry.failedOnly to be enabled")
+	}
+	return nil
 }
 
 // ValidateNetworkThrottling warns when both networkProfile and networkConditions are set

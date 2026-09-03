@@ -178,7 +178,8 @@ func (r *CucumberRunner) runSuites(ctx context.Context, app string, otherApps []
 				Visibility:       r.Project.Sauce.Visibility,
 				PassThreshold:    s.PassThreshold,
 				SmartRetry: job.SmartRetry{
-					FailedOnly: s.SmartRetry.IsRetryFailedOnly(),
+					FailedOnly:         s.SmartRetry.IsRetryFailedOnly(),
+					PrunePassedRetries: s.SmartRetry.PrunePassedRetries,
 				},
 				ARMRequired: s.ARMRequired,
 			}

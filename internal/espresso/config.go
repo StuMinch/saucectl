@@ -215,7 +215,9 @@ func Validate(p Project) error {
 			return fmt.Errorf(msg.InvalidPassThreshold)
 		}
 		config.ValidateNetworkThrottling(suite.Name, suite.NetworkProfile, suite.NetworkConditions)
-		config.ValidateSmartRetry(suite.SmartRetry)
+		if err := config.ValidateSmartRetry(suite.SmartRetry); err != nil {
+			return err
+		}
 		if v, ok := suite.TestOptions["numShards"]; ok {
 			_, err := strconv.Atoi(fmt.Sprintf("%v", v))
 			if err != nil {

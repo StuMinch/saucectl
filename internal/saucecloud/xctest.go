@@ -193,7 +193,8 @@ func (r *XctestRunner) startJob(jobOpts chan<- job.StartOptions, appFileID, xcTe
 		Retries:       r.Project.Sauce.Retries,
 		PassThreshold: s.PassThreshold,
 		SmartRetry: job.SmartRetry{
-			FailedOnly: s.SmartRetry.IsRetryFailedOnly(),
+			FailedOnly:         s.SmartRetry.IsRetryFailedOnly(),
+			PrunePassedRetries: s.SmartRetry.PrunePassedRetries,
 		},
 		TestOptions: s.TestOptions.ToMap(),
 

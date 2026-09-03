@@ -216,6 +216,61 @@ func (ts *TestSuites) TestCases() []TestCase {
 	return tcs
 }
 
+// PrunePassedRetries removes failed test cases from earlier attempts when the
+// latest matching attempt passed. Reports are left unchanged when a matching
+// test's latest status is not a pass.
+func PrunePassedRetries(reports []TestSuites) {
+	type testStatus struct {
+		passed bool
+	}
+
+	latest := make(map[string]testStatus)
+	for i := len(reports) - 1; i >= 0; i-- {
+		for _, suite := range reports[i].TestSuites {
+			for _, test := range suite.TestCases {
+				key := fmt.Sprintf("%s.%s.%s", suite.Name, test.ClassName, test.Name)
+				if _, ok := latest[key]; ok {
+					continue
+				}
+				latest[key] = testStatus{
+					passed: !test.IsError() && !test.IsFailure() && !test.IsSkipped(),
+				}
+			}
+		}
+	}
+
+	for i := range reports {
+		for suiteIndex := range reports[i].TestSuites {
+			testCases := reports[i].TestSuites[suiteIndex].TestCases
+			kept := testCases[:0]
+			for _, test := range testCases {
+				key := fmt.Sprintf("%s.%s.%s", reports[i].TestSuites[suiteIndex].Name, test.ClassName, test.Name)
+				status := latest[key]
+				if status.passed && (test.IsError() || test.IsFailure()) && !isLatestAttempt(reports, i, key) {
+					continue
+				}
+				kept = append(kept, test)
+			}
+			reports[i].TestSuites[suiteIndex].TestCases = kept
+			reports[i].TestSuites[suiteIndex].Compute()
+		}
+		reports[i].Compute()
+	}
+}
+
+func isLatestAttempt(reports []TestSuites, attempt int, key string) bool {
+	for i := attempt + 1; i < len(reports); i++ {
+		for _, suite := range reports[i].TestSuites {
+			for _, test := range suite.TestCases {
+				if fmt.Sprintf("%s.%s.%s", suite.Name, test.ClassName, test.Name) == key {
+					return false
+				}
+			}
+		}
+	}
+	return true
+}
+
 // Parse a junit report from an XML encoded byte string. The root <testsuites>
 // element is optional if there's only one <testsuite> element. In that case,
 // Parse will parse the <testsuite> and wrap it in a TestSuites struct.

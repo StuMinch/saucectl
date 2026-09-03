@@ -242,7 +242,8 @@ func (r *EspressoRunner) newStartOptions(
 		Visibility:    r.Project.Sauce.Visibility,
 		PassThreshold: s.PassThreshold,
 		SmartRetry: job.SmartRetry{
-			FailedOnly: s.SmartRetry.IsRetryFailedOnly(),
+			FailedOnly:         s.SmartRetry.IsRetryFailedOnly(),
+			PrunePassedRetries: s.SmartRetry.PrunePassedRetries,
 		},
 
 		// Network throttling

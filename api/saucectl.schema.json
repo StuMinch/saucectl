@@ -547,6 +547,11 @@
                       "description": "Optimize suite retries by retrying failed tests, classes or spec files only.",
                       "type": "boolean",
                       "default": false
+                    },
+                    "prunePassedRetries": {
+                      "description": "Remove failures from earlier attempts when the corresponding retry passes.",
+                      "type": "boolean",
+                      "default": false
                     }
                   }
                 }
@@ -1159,6 +1164,11 @@
                   "properties": {
                     "failedOnly": {
                       "description": "Optimize suite retries by retrying failed tests, classes or spec files only.",
+                      "type": "boolean",
+                      "default": false
+                    },
+                    "prunePassedRetries": {
+                      "description": "Remove failures from earlier attempts when the corresponding retry passes.",
                       "type": "boolean",
                       "default": false
                     }
@@ -1777,6 +1787,11 @@
                   "properties": {
                     "failedOnly": {
                       "description": "Optimize suite retries by retrying failed tests, classes or spec files only.",
+                      "type": "boolean",
+                      "default": false
+                    },
+                    "prunePassedRetries": {
+                      "description": "Remove failures from earlier attempts when the corresponding retry passes.",
                       "type": "boolean",
                       "default": false
                     }
@@ -2800,6 +2815,11 @@
                       "description": "Optimize suite retries by retrying failed tests, classes or spec files only.",
                       "type": "boolean",
                       "default": false
+                    },
+                    "prunePassedRetries": {
+                      "description": "Remove failures from earlier attempts when the corresponding retry passes.",
+                      "type": "boolean",
+                      "default": false
                     }
                   }
                 },
@@ -3375,6 +3395,11 @@
                   "properties": {
                     "failedOnly": {
                       "description": "Optimize suite retries by retrying failed tests, classes or spec files only.",
+                      "type": "boolean",
+                      "default": false
+                    },
+                    "prunePassedRetries": {
+                      "description": "Remove failures from earlier attempts when the corresponding retry passes.",
                       "type": "boolean",
                       "default": false
                     }
@@ -3963,6 +3988,11 @@
                   "properties": {
                     "failedOnly": {
                       "description": "Optimize suite retries by retrying failed tests, classes or spec files only.",
+                      "type": "boolean",
+                      "default": false
+                    },
+                    "prunePassedRetries": {
+                      "description": "Remove failures from earlier attempts when the corresponding retry passes.",
                       "type": "boolean",
                       "default": false
                     }
@@ -4735,6 +4765,11 @@
                   "properties": {
                     "failedOnly": {
                       "description": "Optimize suite retries by retrying failed tests, classes or spec files only.",
+                      "type": "boolean",
+                      "default": false
+                    },
+                    "prunePassedRetries": {
+                      "description": "Remove failures from earlier attempts when the corresponding retry passes.",
                       "type": "boolean",
                       "default": false
                     }

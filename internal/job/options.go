@@ -147,5 +147,6 @@ type TunnelOptions struct {
 
 // SmartRetry represents the retry strategy.
 type SmartRetry struct {
-	FailedOnly bool `json:"-"`
+	FailedOnly         bool `json:"-"`
+	PrunePassedRetries bool `json:"-"`
 }

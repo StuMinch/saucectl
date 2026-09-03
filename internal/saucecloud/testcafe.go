@@ -208,7 +208,8 @@ func (r *TestcafeRunner) generateStartOpts(s testcafe.Suite) job.StartOptions {
 		Attempt:          0,
 		PassThreshold:    s.PassThreshold,
 		SmartRetry: job.SmartRetry{
-			FailedOnly: s.SmartRetry.IsRetryFailedOnly(),
+			FailedOnly:         s.SmartRetry.IsRetryFailedOnly(),
+			PrunePassedRetries: s.SmartRetry.PrunePassedRetries,
 		},
 		ARMRequired: s.ARMRequired,
 	}

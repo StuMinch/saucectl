@@ -93,6 +93,25 @@ func TestTestSuites_Compute(t *testing.T) {
 	assert.Equal(t, 1, report.Skipped)
 }
 
+func TestPrunePassedRetries(t *testing.T) {
+	reports := []TestSuites{
+		{TestSuites: []TestSuite{{Name: "suite", TestCases: []TestCase{
+			{Name: "recovered", ClassName: "tests", Failure: &Failure{}},
+			{Name: "persistent", ClassName: "tests", Failure: &Failure{}},
+		}}}},
+		{TestSuites: []TestSuite{{Name: "suite", TestCases: []TestCase{
+			{Name: "recovered", ClassName: "tests"},
+			{Name: "persistent", ClassName: "tests", Failure: &Failure{}},
+		}}}},
+	}
+
+	PrunePassedRetries(reports)
+
+	assert.Len(t, reports[0].TestSuites[0].TestCases, 1)
+	assert.Equal(t, "persistent", reports[0].TestSuites[0].TestCases[0].Name)
+	assert.Len(t, reports[1].TestSuites[0].TestCases, 2)
+}
+
 func TestTestSuite_Compute(t *testing.T) {
 	suite := TestSuite{
 		TestCases: []TestCase{
